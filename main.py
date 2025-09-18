@@ -3,12 +3,15 @@ import pdfplumber
 import docx
 from fastapi import FastAPI, UploadFile, File, Form,Depends, HTTPException
 from fastapi.responses import JSONResponse
+from datetime import datetime
 import google.generativeai as genai
 from google.api_core.exceptions import ResourceExhausted
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy.dialects.postgresql import insert
 import os
+from sqlalchemy import Column, Integer, String, ForeignKey, Text,text,inspect,desc,func
 from database import create_engine,SessionLocal
 from dotenv import load_dotenv
 # from Extract import Biodiversity
@@ -17,7 +20,8 @@ from sqlalchemy.orm import Session
 from typing import Dict,Any,List,Optional
 import questions
 # import pdf
-from models import supply_chain_management,create_pdf_model
+from models import create_pdf_model,TableRegistry,Base
+import randoms
 
 load_dotenv()
 API_KEY=os.getenv("API_KEY")
@@ -53,8 +57,6 @@ class RequestBody(BaseModel):
     item: CompanyOverview
     activeCategory: str
     kratos:Dict
-    report:str
-    date:str
 
 
 
@@ -219,63 +221,273 @@ def sections_find_fun_question(section:str):
   return sections[section]
 
 
+
+
+
+
+undefined_count=0
+
+def get_report_name(report: str | None) -> str:
+    if report != "":
+    
+        return report
+    global undefined_count
+    if not report or report.strip() == "":
+        print("REP UNID")
+        undefined_count += 1
+        return "Undefined" if undefined_count == 1 else f"Undefined{undefined_count}"
+    return report
+
+
+
+
 @app.post("/submit/")
 async def extract_document(payload:RequestBody,db: Session = Depends(get_db)):
-    # item=payload.item
     category=payload.activeCategory
     section=payload.item.quesSection
-    # print("Category YTHIS ",category,section)
-    report=payload.report
-    print("KIKII",report,payload.date)
+    kratos=payload.kratos
+    report=kratos.get("Report name","")
+    date=kratos.get("Date","")    
     categoryfind=category_find_fun(category)
     section_questions=sections_find_fun_question(section)
-    # print(section_questions)
-    # print(payload.kratos)
     for item in section_questions:
         if item["question"] in payload.kratos:
             item["answer"] = payload.kratos[item["question"]]
-            
-    print(categoryfind)
-    print("***********")
-    print(section)
-    print("***********")
-    print(section_questions)
-    
-    # PDFTable = create_pdf_model(report)
+    report=get_report_name(report)    
+    print("***************** report _ name ",report,"0.0.0.0",date)
+    REPORTTABLE = create_pdf_model(report)
+    REPORTTABLE.__table__.create(bind=db.get_bind(), checkfirst=True)
+    Base.metadata.create_all(bind=db.get_bind(), tables=[TableRegistry.__table__])
+
+    registry_entry = TableRegistry(section=section,category=categoryfind,table_name=report,date=date)
+    db.add(registry_entry)
+    db.commit()
 
 
-    # PDFTable.__table__.create(bind=db.get_bind(), checkfirst=True)
-    
     for item in section_questions:
-        record = supply_chain_management(
-            category=category,
+        record = REPORTTABLE(
             section=section,
+            category=categoryfind,
             question=item["question"],
             answer=item["answer"]
         )
         db.add(record)
 
-    # Commit to DB
+
     db.commit()
     db.close()    
-    return section
-    
-    
-    
-# @app.get("/download/")
-# async def download_pdf(section:str, db: Session = Depends(get_db)):
-#     print(section)
-#     rows = db.query(supply_chain_management).all()
-#     print(rows)
-    
-#     return "PDF DOWNLOAD SUCESSFULLY !"
+    return report
 
 
-@app.delete("/delete/{section}")
-async def delete_fun(section:str,db:Session=Depends(get_db)):
-    data=db.query(supply_chain_management).filter(supply_chain_management.section==section).all()
+
+
+
+card=[
+      {
+        "name": "Active Suppliers",
+        "value": "",
+        "icon": "UserOutlined"
+      },
+      {
+        "name": "Low Rated Suppliers",
+        "value": "",
+        "icon": "SettingOutlined"
+      },
+      {
+        "name": "High Rated Suppliers",
+        "value": "",
+        "icon": "CheckCircleOutlined"
+      },
+      {
+        "name": "Suppliers at Risk",
+        "value": "",
+        "icon": "UserOutlined"
+      },
+      {
+        "name": "Audits Completed",
+        "value": "",
+        "icon": "SettingOutlined"
+      },
+      {
+        "name": "On Time Delivery",
+        "value": "",
+        "icon": "CheckCircleOutlined"
+      }
+    ]
+
+
+report={
+        "key": "",
+        "supplier": "",
+        "industry": "",
+        "service": [
+            "NAKAKITA's serial number",
+            "Plant name (Shipyard name)",
+            "Plant number (Ship number)",
+            "Application (Valve number)",
+            "Product name, etc"
+        ],
+        "product": [
+            {
+                "productAdress": "Nozzle, Nakakita Seisakusho Co Ltd,Japan, Stainless Steel 304 Stellited, Psvs Of Uty-2 Plant",
+                "key": 1,
+                "name": "Nozzle",
+                "location": "Yanbu, Saudi Arabia",
+                "sku": "GSC034-0321-02-55664",
+                "Mfg": "Nakakita Seisakusho Co Ltd, Japan",
+                "unspsc": "40141731",
+                "hsn": "84249000",
+                "material": "Stainless Steel 304 Stellited",
+                "application": "Psvs Of Uty-2 Plant"
+            },
+            {
+                "productAdress": "Gasket, Nakakita Seisakusho Co Ltd, Japan, 27,Acbt-3294Dm",
+                "key": 2,
+                "name": "Gasket",
+                "location": "Al-Jubail, Saudi Arabia",
+                "sku": "GSC034-1120-01-18029",
+                "Mfg": "Nakakita Seisakusho Co Ltd, Japan",
+                "unspsc": "31401500",
+                "hsn": "40169320",
+                "material": "ACBT-3294DM",
+                "application": "27"
+            }
+        ],
+        "website": "https://www.demo-s.co.jp/en/companyoutline",
+        "websiteName": "www.demo-s.co",
+        "companyId": "100000",
+        "location": "mambalam",
+        "certification": [
+            {
+                "name": "Quality Management",
+                "certificate": "ISO 9001 (LRQA)",
+                "expire_date": "Expires 15 Jan 2025"
+            },
+            {
+                "name": "Environment Management",
+                "certificate": "CE Marking (LRQA)",
+                "expire_date": "Expires 15 Jan 2025"
+            }
+
+        ],
+        "riskScore":"86",
+        "riskLevel": "",
+        "compliance": "",
+        "category": "",
+        "cyberRiskScore": 90,
+        "financialRiskScore": 40,
+        "healthScore": 60,
+        "environment": 79,
+        "social": 80,
+        "governance": 60,
+        "healthSafety": 90,
+        "status": True,
+        "email": "demo@gmail.com",
+        "contactUs": "000000000000",
+        "aboutUs": "our founding in 1930, we have been working hard every day to meet our customers' needs, from design and manufacturing to maintenance of fluid control systems centered on valves, under our company motto of 'progressive development.' Meanwhile,in order to respond to the accelerating changes of the times, we are adding 'challenge' to our theme of 'protecting the present while challenging new things'. While refining our 'product development' that gives shape to the voices of our customers, we will also challenge ourselves to develop new 'technologies' and aim to be a company that proposes new values and benefits to our customers. We ask for your continued understanding and support for Nakakita Seisakusho Co., Ltd., which boldly challenges new things.",
+        "history": [
+            {
+                "achivement": "Commenced the production of automatic control valves at Matsugae-cho, Kita-ku, Osaka under a private undertaking owned by Mr. Benzo Nakakita, the first president of Nakakita Seisakusho Co., Ltd",
+                "years": "1930"
+            },
+            {
+                "achivement": "Reopened Tokyo office and opened Kyushu office.",
+                "years": "1950"
+            }
+        ],
+        "insurance": [
+            {
+                "name": "Public Liability",
+                "amount": "$ 1,00,000.000",
+                "expire_date": "Expires 30 Nov 2024"
+            },
+            {
+                "name": "Professional Indemnity",
+                "amount": "$ 5,000.000",
+                "expire_date": "Expires 22 Dec 2024"
+            }
+        ]
+    }
+    
+    
+    
+@app.get("/dashboard/")
+async def dashboard(db:Session=Depends(get_db)):
+    dashboard_list=db.query(TableRegistry).order_by(TableRegistry.created_at.asc()).all()
+    report_list = [report.copy() for _ in range(len(dashboard_list))]
+
+    # REPORTTABLE = create_pdf_model("suman")
+    # result = db.query(REPORTTABLE).filter(REPORTTABLE.question == "Where is the company headquartered?").first()
+    # print("MOON",result.answer)
+    def rr(table,question):
+        REPORTTABLE = create_pdf_model(table)
+        result = db.query(REPORTTABLE).filter(REPORTTABLE.question==question).first()
+        if result is None:
+            return ""
+        return result.answer
+
+    
+    for i,dl in enumerate(dashboard_list):
+        # print(db.query().filter("Where is the company headquartered?"))
+        report_list[i]["supplier"]=dl.table_name
+        report_list[i]["key"]=dl.table_name
+        report_list[i]["industry"]=randoms.Industry()
+        report_list[i]["category"]=randoms.Category()
+        report_list[i]["riskScore"]=randoms.Risk_Score()
+        report_list[i]["riskLevel"]=randoms.Risk_Level()
+        report_list[i]["compliance"]=randoms.Compliance()
+        report_list[i]["status"]=randoms.Status()
+        report_list[i]["location"]=rr(dl.table_name,"Where is the company headquartered?")
+
+
+    # Active Suppliers 
+    card[0]["value"]=str(sum(1 for item in report_list if item.get("status") is True))
+    # Low Rated Suppliers
+    card[1]["value"]=str(sum(1 for item in report_list if item.get("riskLevel") == "Low"))
+    # High Rated Suppliers 
+    card[2]["value"]=str(sum(1 for item in report_list if item.get("riskLevel") == "High"))
+    # Suppliers at Risk
+    card[3]["value"]=str(sum(1 for item in report_list if item.get("riskLevel") == "High"))
+    # Audits Completed
+    card[4]["value"]=str(sum(1 for item in report_list if item.get("compliance") == "Compliant"))   
+    # On Time Delivery
+    card[5]["value"]="7"
+        
+    return {"card_list":card,"report_list":report_list}
+
+
+@app.delete("/delete/{report}")
+async def delete_fun(report:str,db:Session=Depends(get_db)):
+    
+    data=db.query(TableRegistry).filter(TableRegistry.table_name==report).all()
     print(data)
-    return f"{data}PDF DELETED SUCESSFULLY !"
+    
+    registry_entry = db.query(TableRegistry).filter_by(table_name=report).first()
+    if not registry_entry:
+        raise HTTPException(status_code=404, detail=f"Table '{report}' not found in registry.")
+
+    # Step 2: Check if the table exists in the actual database
+    inspector = inspect(db.get_bind())
+    if not inspector.has_table(report):
+        raise HTTPException(status_code=404, detail=f"Table '{report}' does not exist in the database.")
+
+    # Step 3: Dynamically create model
+    REPORTTABLE = create_pdf_model(report)
+
+    # Step 4: Drop the table
+    try:
+        REPORTTABLE.__table__.drop(bind=db.get_bind())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete table '{report}': {str(e)}")
+
+    # Step 5: Remove the table entry from table_registry
+    db.delete(registry_entry)
+    db.commit()
+    
+    return f"{report} PDF DELETED SUCESSFULLY !"
+
+
+
 
 
 
