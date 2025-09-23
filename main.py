@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from typing import Dict,Any,List,Optional
 import questions
 from models import create_pdf_model,TableRegistry,Base
+from functions import risklevel_def
 import randoms
 
 load_dotenv()
@@ -237,20 +238,6 @@ def get_report_name(report: str | None) -> str:
 
 
 
-    
-def risklevel_def(score):
-    if score is None or score =="":
-        return ""
-    elif 20>=score:
-        return "High"
-
-    elif 20<50>=score:
-        return "Medium"
-
-    elif 50<100>=score:
-        return "Low"
-    
-
 
 
 card=[
@@ -332,12 +319,10 @@ report={
             {
                 "name": "Quality Management",
                 "certificate": "ISO 9001 (LRQA)",
-                "expire_date": "Expires 15 Jan 2025"
             },
             {
                 "name": "Environment Management",
                 "certificate": "CE Marking (LRQA)",
-                "expire_date": "Expires 15 Jan 2025"
             }
 
         ],
@@ -380,104 +365,26 @@ report={
         ]
     }
 
-
-# black={
-#     [
-#         {
-#         "title": "Revenue",
-#         "type": "revenue",
-#         "description": "Total Revenue: $1.2M",
-#         "buttonText": "View Details",
-#         "growth": "8.5% (YoY)",
-#         "lastMonth": "$100K"
-#         },
-#         {
-#         "title": "Performance Feedback",
-#         "type": "performancefeedback",
-#         "description": "Average Rating: 4.5/5",
-#         "buttonText": "View Feedbacks",
-#         "positiveFeedback": "85%",
-#         "customerComplaints": "12"
-#         },
-#         {
-#         "title": "Audits Information",
-#         "type": "auditsinformation",
-#         "description": "Compliance Status: Passed",
-#         "buttonText": "View Audit Reports",
-#         "lastAudit": "Sep 2023",
-#         "nextAuditDue": "Mar 2024"
-#         },
-#         {
-#         "title": "Supplier Compliance",
-#         "type": "suppliercompliance",
-#         "description": "Compliance Score: 95%",
-#         "buttonText": "View Compliance",
-#         "issues": "3 Pending",
-#         "lastReview": "1 Month Ago"
-#         },
-#         {
-#         "title": "Order History",
-#         "type": "orderhistory",
-#         "description": "Total Orders: 520",
-#         "buttonText": "Order History",
-#         "completedOrders": "510",
-#         "pendingOrders": "10"
-#         },
-#         {
-#         "title": "Certifications",
-#         "type": "certifications",
-#         "description": "Total Certifications: 520",
-#         "buttonText": "View Certifications",
-#         "validCertifications": "04",
-#         "expiredCertifications": "0"
-#         }
-#         ]
-#     }
-
-
-# {
-#         "key": "green",
-#         "supplier": "Green Field Material Handling",
-#         "industry": "Automobile",
-#         "service": [
-#           "Samson material handeling",
-#           "Samson solar power Samson",
-#           "agro equipment",
-#           "Samson agro biotech"
-#         ],
-#         "product": "",
-#         "website": "https://samsonmaterialhandling.com/",
-#         "websiteName": "samsonmaterialhandling.com",
-#         "companyId": "15468456",
-#         "location": "Plot No. N-49/1, MIDC, Additional Ambernath Indl. Area, Ambernath (E), Thane - 421506, Maharashtra, India.",
-#         "certification": [
-#           {
-#             "environment_management_system": "ISO 14001:2004"
-#           },
-#           {
-#             "health&safety_management_system": "OHSAS 18001:2007"
-#           },
-#           {
-#             "quantity_management_system": "ISO9001:2008"
-#           }
-#         ],
-#         "riskScore": 84,
-#         "riskLevel": "Low",
-#         "compliance": "Compliant",
-#         "category": "Safety Material",
-#         "cyberRiskScore": 90,
-#         "financialRiskScore": 40,
-#         "healthScore": 60,
-#         "environment": 79,
-#         "social": 80,
-#         "governance": 60,
-#         "healthSafety": 90,
-#         "status": True,
-#         "email": "info@hararamagroup.com",
-#         "contactUs": "+91 251 3217880 / +91 251 2621681",
-#         "aboutUs": "Green Field Material Handling P. Ltd., An ISO 9001-2000 Certified Company, a group of companies founded in 1990, offering a wide range of products and services to industry in the specialized field of materials handling and lifting. The vital strength of the organization is the vast experience of our key person, for more than two decades, in the field of Material Handling and Critical Lifting, which has solved a lot of lifting problems in India and Overseas as well. Our accomplished engineering sales force could solve any sort of lifting problems. Advise and implement up-to-date, latest innovative designs and solutions to meet newer challenges. We sincerely attend to your requirement, small or large, from a single hook to a 50-meter long non-metallic sling. Our speciality is heavy-duty non-metallic sling, made of polyester. These are of two types: flat webbing sling with Eye-loop at the ends and Round (endless) slings. Both are available in different lengths and weight lifting capacities, ranging from 1 ton up to 300 tons. We also have various types of Hooks, D-Shackles, Bow Shackles, Multi-leg slings, Master Rings & Cargo lashings, Safety Harness, lifting beams, lifting clamps & crane weighing systems, etc. The Green Field's efficient personnel are always available to advise you on any type of problem in material handling and lifting."
-#       }
-
+carbon_footprint=[
+        {
+            "title": "Total Emissions",
+            "totalEmissions": "118,273",
+            "totalEmissionsTons": "Tomass CO₂"
+            },
+        {
+            "title": "Yearly Reduction",
+            "yearlyReduction": "20%"
+            },
+        {
+            "title": "Carbon Intensity",
+            "carbonIntensity": "0.9 Tons",
+            "carbonUnit": "CO₂/Unit"
+            },
+        {
+            "title": "Renewable Energy Use",
+            "renewableEnergyUse": "15%"
+            }
+        ]
 
 
     
@@ -502,6 +409,45 @@ async def dashboard(db:Session=Depends(get_db)):
             return ""
         return result.answer.split(",")
 
+    def certification_find(table):
+        ret = []
+        REPORTTABLE = create_pdf_model(table)
+
+        # ISO 14001
+        result = db.query(REPORTTABLE).filter(
+            REPORTTABLE.question == "Does your company hold an ISO 14001 certification for environmental management?"
+        ).first()
+        if result and result.answer == "Yes":
+            ret.append({
+                "name": "Quality Management",
+                "certificate": "ISO 14001"
+            })
+
+        # ISO 50001
+        result2 = db.query(REPORTTABLE).filter(
+            REPORTTABLE.question == "Does your company hold an ISO 50001 certification for energy management?"
+        ).first()
+        if result2 and result2.answer == "Yes":
+            ret.append({
+                "name": "Energy Management",
+                "certificate": "ISO 50001"
+            })
+        
+        result3 = db.query(REPORTTABLE).filter(
+            REPORTTABLE.question == "Has your company obtained any other environmental management system certifications, eg EMAS (Eco-Management and Audit Scheme) ?"
+        ).first()
+        
+        if result3 and result3.answer:
+            ret.append({
+                "name":result3.answer,
+                "certificate":""
+            })
+        
+        print("MILOOPP",ret)
+        return ret if ret else []
+
+
+
     for i,dl in enumerate(dashboard_list):
         report_list[i]["supplier"]=dl.table_name
         report_list[i]["key"]=dl.table_name
@@ -515,11 +461,8 @@ async def dashboard(db:Session=Depends(get_db)):
         report_list[i]["service"]=gr(dl.table_name,"What is the product name, type, and function?")
         report_list[i]["email"]=rr(dl.table_name,"Email")
         report_list[i]["contactUs"]=rr(dl.table_name,"Contact No")
-
-        # report_list[i][""]=dl.status
-        # report_list[i][""]=dl.status
-        # report_list[i][""]=dl.status
-        # report_list[i][""]=dl.status
+        report_list[i]["certification"]=certification_find(dl.table_name)
+        
         
         
         
@@ -537,171 +480,16 @@ async def dashboard(db:Session=Depends(get_db)):
     card[4]["value"]=str(sum(1 for item in report_list if item.get("compliance") == "Compliant"))   
     # On Time Delivery
     card[5]["value"]="0"
-    
-    demo_list=[
-      {
-        "key": "green",
-        "supplier": "Green Field Material Handling",
-        "industry": "Automobile",
-        "service": [
-          "Samson material handeling",
-          "Samson solar power Samson",
-          "agro equipment",
-          "Samson agro biotech"
-        ],
-        "product": "",
-        "website": "https://samsonmaterialhandling.com/",
-        "websiteName": "samsonmaterialhandling.com",
-        "companyId": "15468456",
-        "location": "Plot No. N-49/1, MIDC, Additional Ambernath Indl. Area, Ambernath (E), Thane - 421506, Maharashtra, India.",
-        "certification": [
-          {
-            "environment_management_system": "ISO 14001:2004"
-          },
-          {
-            "health&safety_management_system": "OHSAS 18001:2007"
-          },
-          {
-            "quantity_management_system": "ISO9001:2008"
-          }
-        ],
-        "riskScore": 84,
-        "riskLevel": "Low",
-        "compliance": "Compliant",
-        "category": "Safety Material",
-        "cyberRiskScore": 90,
-        "financialRiskScore": 40,
-        "healthScore": 60,
-        "environment": 79,
-        "social": 80,
-        "governance": 60,
-        "healthSafety": 90,
-        "status": True,
-        "email": "info@hararamagroup.com",
-        "contactUs": "+91 251 3217880 / +91 251 2621681",
-        "aboutUs": "Green Field Material Handling P. Ltd., An ISO 9001-2000 Certified Company, a group of companies founded in 1990, offering a wide range of products and services to industry in the specialized field of materials handling and lifting. The vital strength of the organization is the vast experience of our key person, for more than two decades, in the field of Material Handling and Critical Lifting, which has solved a lot of lifting problems in India and Overseas as well. Our accomplished engineering sales force could solve any sort of lifting problems. Advise and implement up-to-date, latest innovative designs and solutions to meet newer challenges. We sincerely attend to your requirement, small or large, from a single hook to a 50-meter long non-metallic sling. Our speciality is heavy-duty non-metallic sling, made of polyester. These are of two types: flat webbing sling with Eye-loop at the ends and Round (endless) slings. Both are available in different lengths and weight lifting capacities, ranging from 1 ton up to 300 tons. We also have various types of Hooks, D-Shackles, Bow Shackles, Multi-leg slings, Master Rings & Cargo lashings, Safety Harness, lifting beams, lifting clamps & crane weighing systems, etc. The Green Field's efficient personnel are always available to advise you on any type of problem in material handling and lifting."
-      },
-      {
-        "key": "fasteners",
-        "supplier": "V.K. Fasteners Private Limited",
-        "industry": "Automobile",
-        "service": "",
-        "product": [
-          "HEX HEAD FLANGE SCREW/BOLT",
-          "Cross pan/flat screw",
-          "Hex nut",
-          "U blot"
-        ],
-        "location": "No.79, Valmiki Street Thiruvanmiyur, Chennai - 600 041Tamil Nadu, India",
-        "certification": [
-          {
-            "environment_management_system": "ISO 9001:2015"
-          },
-          {
-            "eu_certificate_of_quality_system_approval": "0343/PED/MUM/2210015/2"
-          },
-          {
-            "quantity_management_system": "0038/UK/PER/MUM/2210015/4"
-          }
-        ],
-        "riskScore": 73,
-        "riskLevel": "Low",
-        "compliance": "Compliant",
-        "category": "Safety Material",
-        "cyberRiskScore": 41,
-        "financialRiskScore": 80,
-        "healthScore": 60,
-        "environment": 70,
-        "social": 79,
-        "governance": 55,
-        "healthSafety": 80,
-        "status": True,
-        "companyId": "15440456",
-        "website": "https://www.vkfasteners.co.in/",
-        "websiteName": "www.vkfasteners.co.in",
-        "email": "marketing1@vkf.co.in",
-        "contactUs": "+91 89259 50777",
-        "aboutUs": "VK Fasteners - Another MILESTONE of IGP Group, serving the industries more than 60 years. As a traditional family business the core values of optimization, reliability, continuity, and sustainability hold true for every business in IGP Family.Now VK Fasteners Private Limited, a group company of IGP is set at Chennai, Tamilnadu for manufacture of HIGH TENSILE FASTENERS AND PARTS to cater the need of automotive manufacturer through Cold Forging Process.Highly trained and experienced professional along with latest automatic imported bolt former with quality control equipment shall assure you ONTIME DELIVERY AND BEST QUALITY Plant has a installed capacity around 5000MTPA Plant is capable enough to produce all types of fasteners to national and international standards and to customer designed specification"
-      },
-      {
-        "key": "rahul",
-        "supplier": "Rahul Agencies",
-        "industry": "Automobile",
-        "service": "",
-        "product": [
-          "Epoxy adhesive",
-          "Steam solenoid servo valve",
-          "Flow control valve",
-          "Pneumatic cylinder",
-          "Pneumatic actuators",
-          "Solenoid coil",
-          "Auto drain valve",
-          "Pneumatic tubes",
-          "Air cylinders"
-        ],
-        "location": "Plot No. N-49/1, MIDC, Additional Ambernath Indl. Area, Ambernath (E), Thane - 421506, Maharashtra, India.",
-        "certification": "Power tool accessories & fasteners and hand tools",
-        "riskScore": 48,
-        "riskLevel": "Medium",
-        "compliance": "Compliant",
-        "category": "Adhesive",
-        "cyberRiskScore": 35,
-        "financialRiskScore": 52,
-        "healthScore": 60,
-        "environment": 40,
-        "social": 17,
-        "governance": 69,
-        "healthSafety": 34,
-        "companyId": "15110451",
-        "website": "https://rahulagencies.in/",
-        "websiteName": "rahulagencies.in",
-        "status": True,
-        "email": "mayur.rahulagencies@gmail.com",
-        "contactUs": "+91 9824138242",
-        "aboutUs": "Established as a Proprietor firm in the year 2019 at Vapi (Gujarat, India), we “Rahul Agencies” are a leading Distributor / Channel Partner of a wide ran of Solenoid Valves, Pneumatic Cylinder, etc. We procure these products from the most trusted and renowned vendors after stringent market analysis. Further, we offer these products at reasonable rates and deliver these within the promised time-frame. Under the headship of “Mr. Mayur Shah”, we have gained a huge clientele across the nation."
-      },
-      {
-        "key": "sonic",
-        "supplier": "Sonic Enterprises",
-        "industry": "Oil and Gas",
-        "service": "",
-        "product": [
-          "Pumps",
-          "fans",
-          "Room heater",
-          "Exhaust motors",
-          "Electric iron",
-          "Immersion rod"
-        ],
-        "location": "Meerut Road Industrial Area, Ghaziabad - 201003, Uttar Pradesh, India",
-        "certification": "",
-        "riskScore": 42,
-        "riskLevel": "Medium",
-        "compliance": "Non-Compliant",
-        "category": "Safety Material",
-        "cyberRiskScore": 50,
-        "financialRiskScore": 40,
-        "healthScore": 60,
-        "environment": 37,
-        "social": 31,
-        "governance": 49,
-        "healthSafety": 19,
-        "status": False,
-        "email": "sonic.surat@gmail.com",
-        "companyId": "10110411",
-        "website": "https://www.sonichomeappliances.com/",
-        "websiteName": "www.sonichomeappliances.com",
-        "contactUs": "+91 9998012325",
-        "aboutUs": "We “Sonic Enterprise” founded in the year 2005 are a renowned firm that is engaged in manufacturing a wide assortment of Kitchen Jali, PVC Curtain Bracket Holder, PVC Curtain Bracket, Wall Hanger, etc. We have a wide and well functional infrastructural unit that is situated at Rajkot (Gujarat, India) and helps us in making a remarkable collection of products as per the set industry standards. We are a Sole Proprietorship firm that is managed under the headship of “Mr. Mukesh” (Manager), and have achieved a significant position in this sector"
-      }]    
-    return {"card_list":card,"report_list":report_list}
-    # return {"card_list":card,"report_list":demo_list}
+
+    return {"card_list":card,"report_list":report_list,"carbon_footprint":carbon_footprint}
 
 
-
+@app.get("/extract/")
+async def extract_document():
+    return 
 
 @app.post("/submit/")
-async def extract_document(payload: RequestBody, db: Session = Depends(get_db)):
+async def submit_datas(payload: RequestBody, db: Session = Depends(get_db)):
     category = payload.activeCategory
     section = payload.item.quesSection
     kratos = payload.kratos
