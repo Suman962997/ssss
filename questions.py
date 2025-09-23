@@ -10,6 +10,15 @@
 
 Company_Overview=[
     {
+    "question":"Email",
+    "answer":None},
+    
+    {
+    "question":"Contact No",
+    "answer":None},
+    
+
+    {
     "question":"What is the legal name of the company?",
     "answer":None},
     

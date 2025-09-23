@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Any
-from sqlalchemy import Column,Integer,String,Text
+from sqlalchemy import Column,Integer,String,Text,Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text, DateTime
 from datetime import datetime
@@ -13,9 +13,14 @@ Base=declarative_base()
 class TableRegistry(Base):
     __tablename__ = "table_registry"
     id = Column(Integer, primary_key=True, index=True)
-    section=Column(String(50))
-    category=Column(String(50))    
+    industry=Column(String(50))    
     table_name = Column(String(100), unique=True, index=True)
+    category=Column(String(50))    
+    riskscore=Column(Integer)    
+    risklevel=Column(String(50))    
+    compliance=Column(String(50))  
+    status=Column(Boolean, default=True)
+    section=Column(String(50))
     date=Column(String(50))    
     created_at = Column(DateTime, default=datetime.utcnow)
 
